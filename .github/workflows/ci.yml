@@ -1,0 +1,65 @@
+name: CI — Test and Lint
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install and test product service
+      run: |
+        cd services/product-service
+        pip install -r requirements.txt
+        python -c "import app; print('product-service OK')"
+
+    - name: Install and test order service
+      run: |
+        cd services/order-service
+        pip install -r requirements.txt
+        python -c "import app; print('order-service OK')"
+
+    - name: Install and test user service
+      run: |
+        cd services/user-service
+        pip install -r requirements.txt
+        python -c "import app; print('user-service OK')"
+
+    - name: Install and test frontend service
+      run: |
+        cd services/frontend-service
+        pip install -r requirements.txt
+        python -c "import app; print('frontend-service OK')"
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Lint Dockerfiles with hadolint
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: services/product-service/Dockerfile
+        ignore: DL3008,DL3013
+
+    - name: Validate Kubernetes manifests
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+        kubectl apply --dry-run=client -f k8s/namespaces/ 2>&1
+        kubectl apply --dry-run=client -f k8s/configmaps/ 2>&1
+        kubectl apply --dry-run=client -f k8s/deployments/ 2>&1
+        kubectl apply --dry-run=client -f k8s/services/ 2>&1
