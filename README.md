@@ -1,1 +1,272 @@
-# Podmart — Production Grade DevOps Project
+<div align="center">
+
+# 🛒 Podmart
+
+### Production-Grade Microservices Platform with Full DevOps Pipeline
+
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+[![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://terraform.io)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
+[![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io)
+[![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com)
+[![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=for-the-badge&logo=argo&logoColor=white)](https://argoproj.github.io)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+
+</div>
+
+---
+
+## 📌 Overview
+
+Podmart is a cloud-native microservices e-commerce platform built to demonstrate a
+complete end-to-end DevOps workflow. The application simulates a real online store
+with independent services for products, orders, and users — each with its own database,
+containerized with Docker, orchestrated by Kubernetes, and monitored with Prometheus and Grafana.
+
+> The app is intentionally simple. The infrastructure is the point.
+
+---
+
+## 🏗️ Architecture
+```
+                         ┌─────────────────────────────────────────┐
+                         │           Kubernetes (Minikube)          │
+                         │                                          │
+                         │   ┌─────────────┐                       │
+         Browser ───────────▶│   Frontend  │                       │
+                         │   │  Service    │                       │
+                         │   └──────┬──────┘                       │
+                         │          │                               │
+                    ┌────┴────┬─────┴────┐                         │
+                    │         │          │                          │
+             ┌──────▼──┐ ┌───▼─────┐ ┌──▼──────┐                  │
+             │ Product │ │  Order  │ │  User   │                   │
+             │ Service │ │ Service │ │ Service │                   │
+             └──────┬──┘ └───┬─────┘ └──┬──────┘                  │
+                    │        │           │                          │
+             ┌──────▼──┐ ┌───▼─────┐ ┌──▼──────┐                  │
+             │Product  │ │ Order   │ │  User   │                   │
+             │   DB    │ │   DB    │ │   DB    │                   │
+             └─────────┘ └─────────┘ └─────────┘                  │
+                                                                    │
+                    ┌───────────────────────────┐                  │
+                    │    Monitoring Namespace    │                  │
+                    │  Prometheus │   Grafana    │                  │
+                    │  Alertmanager             │                  │
+                    └───────────────────────────┘                  │
+                         └─────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Application** | Python, Flask, SQLAlchemy |
+| **Database** | PostgreSQL (database-per-service pattern) |
+| **Containerization** | Docker, Docker Compose |
+| **Orchestration** | Kubernetes (Minikube) |
+| **GitOps** | ArgoCD |
+| **CI/CD** | GitHub Actions |
+| **Image Registry** | Docker Hub |
+| **Monitoring** | Prometheus, Grafana, Alertmanager |
+| **Infrastructure** | Terraform (AWS S3, IAM) |
+| **Package Manager** | Helm |
+
+---
+
+## 📦 Services
+
+| Service | Port | Description |
+|---|---|---|
+| `frontend-service` | 5000 | Web UI — dashboard, products, orders, users |
+| `product-service` | 5001 | Product catalogue management |
+| `order-service` | 5002 | Order processing, talks to product-service |
+| `user-service` | 5003 | User registration and authentication |
+
+Each service exposes a `/health` endpoint and a `/metrics` endpoint scraped by Prometheus.
+
+---
+
+## 🔄 CI/CD Pipeline
+```
+Developer pushes code
+        │
+        ▼
+GitHub Actions triggers
+        │
+        ├── CI (on Pull Request)
+        │   ├── Run pytest
+        │   ├── Lint Dockerfiles (hadolint)
+        │   └── Validate K8s manifests
+        │
+        └── CD (on merge to main)
+            ├── Build Docker images
+            ├── Tag with Git SHA
+            ├── Push to Docker Hub
+            ├── Update image tags in K8s YAML
+            ├── Commit updated manifests to GitHub
+            └── ArgoCD detects change → deploys to Kubernetes
+```
+
+---
+
+## 🔁 GitOps with ArgoCD
+
+ArgoCD watches this repository every 3 minutes. When the CD pipeline
+updates the image tags in the Kubernetes manifests, ArgoCD detects the
+change and automatically syncs the cluster to match the desired state in Git.
+
+- **Self-healing** — if someone manually changes the cluster, ArgoCD corrects it
+- **Drift detection** — cluster always matches what's in Git
+- **Rollback** — revert a Git commit to roll back a deployment
+
+---
+
+## 📊 Observability
+
+### Prometheus Metrics
+Each Flask service exposes custom business metrics:
+
+| Metric | Type | Description |
+|---|---|---|
+| `orders_total` | Counter | Total orders placed |
+| `order_value_dollars` | Histogram | Order value distribution |
+| `registered_users_total` | Counter | Total registered users |
+| `login_attempts_total` | Counter | Login attempts by status |
+| `flask_http_request_total` | Counter | HTTP requests per service |
+| `flask_http_request_duration_seconds` | Histogram | Request latency |
+
+### Grafana Dashboards
+- **Service Health** — request rate, error rate, p99 latency per service
+- **Business Metrics** — orders per minute, revenue, user registrations
+- **Infrastructure** — pod CPU/memory, node utilization
+
+---
+
+## 📁 Project Structure
+```
+podmart/
+├── services/
+│   ├── product-service/     # Flask app + Dockerfile
+│   ├── order-service/       # Flask app + Dockerfile
+│   ├── user-service/        # Flask app + Dockerfile
+│   └── frontend-service/    # Flask app + HTML templates
+├── k8s/
+│   ├── namespaces/          # podmart namespace
+│   ├── configmaps/          # app config + secrets
+│   ├── deployments/         # service + db deployments
+│   ├── services/            # ClusterIP + NodePort services
+│   ├── ingress/             # ingress rules
+│   └── monitoring/          # ServiceMonitor for Prometheus
+├── monitoring/
+│   ├── prometheus/          # alert rules
+│   └── grafana/             # dashboard JSON
+├── terraform/               # AWS S3 + IAM infrastructure
+├── .github/workflows/       # CI + CD pipelines
+└── docker-compose.yml       # local development
+```
+
+---
+
+## 🛠️ Running Locally
+
+### Prerequisites
+- Docker
+- Docker Compose
+```bash
+git clone https://github.com/Shriniwas-Mudliyar/podmart.git
+cd podmart
+docker compose up --build
+```
+
+Open `http://localhost:5000`
+
+---
+
+## ☸️ Running on Kubernetes
+
+### Prerequisites
+- Minikube
+- kubectl
+- Helm
+```bash
+# Start Minikube
+minikube start --driver=docker --cpus=2 --memory=3500
+
+# Deploy application
+kubectl apply -f k8s/namespaces/
+kubectl apply -f k8s/configmaps/
+kubectl apply -f k8s/deployments/
+kubectl apply -f k8s/services/
+
+# Access the app
+minikube service frontend-service -n podmart --url
+```
+
+### Install Monitoring Stack
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  --set grafana.adminPassword=podmart123
+
+# Access Grafana
+kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
+# Open http://localhost:3000 (admin/podmart123)
+```
+
+### Install ArgoCD
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Access ArgoCD UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Open https://localhost:8080 (admin/<generated-password>)
+```
+
+---
+
+## 📸 Screenshots
+
+### Podmart Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
+
+### ArgoCD — GitOps View
+![ArgoCD](docs/screenshots/argocd.png)
+
+### Grafana — Service Health
+![Grafana](docs/screenshots/grafana.png)
+
+### GitHub Actions — CI/CD Pipeline
+![CI/CD](docs/screenshots/cicd.png)
+
+---
+
+## 🔑 Key DevOps Concepts Demonstrated
+
+- **Microservices** — database-per-service pattern, fault isolation
+- **Containerization** — multi-stage Docker builds, image tagging with Git SHA
+- **Kubernetes** — Deployments, StatefulSets, Services, ConfigMaps, Secrets, HPA
+- **GitOps** — ArgoCD watches Git as single source of truth
+- **CI/CD** — automated testing, building, pushing and deploying on every commit
+- **Observability** — custom Prometheus metrics, Grafana dashboards, Alertmanager
+- **Infrastructure as Code** — Terraform for AWS resources
+
+---
+
+## 👨‍💻 Author
+
+**Shriniwas Mudliyar**
+- GitHub: [@Shriniwas-Mudliyar](https://github.com/Shriniwas-Mudliyar)
+- LinkedIn: [linkedin.com/in/shriniwas-mudliyar](https://linkedin.com/in/shriniwas-mudliyar)
+
+---
+
+<div align="center">
+Built with ❤️ to demonstrate production-grade DevOps practices
+</div>

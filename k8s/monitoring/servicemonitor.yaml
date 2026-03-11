@@ -1,0 +1,75 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podmart-product
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+    - podmart
+  selector:
+    matchLabels:
+      app: product-service
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podmart-order
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+    - podmart
+  selector:
+    matchLabels:
+      app: order-service
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podmart-user
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+    - podmart
+  selector:
+    matchLabels:
+      app: user-service
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podmart-frontend
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+    - podmart
+  selector:
+    matchLabels:
+      app: frontend-service
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
