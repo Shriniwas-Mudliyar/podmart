@@ -56,10 +56,10 @@ jobs:
 
     - name: Update image tags in K8s manifests
       run: |
-        sed -i "s|shridocker99/podmart-product-service:.*|shridocker99/podmart-product-service:${{ github.sha }}|g" k8s/deployments/product-deployment.yaml
-        sed -i "s|shridocker99/podmart-order-service:.*|shridocker99/podmart-order-service:${{ github.sha }}|g" k8s/deployments/order-deployment.yaml
-        sed -i "s|shridocker99/podmart-user-service:.*|shridocker99/podmart-user-service:${{ github.sha }}|g" k8s/deployments/user-deployment.yaml
-        sed -i "s|shridocker99/podmart-frontend-service:.*|shridocker99/podmart-frontend-service:${{ github.sha }}|g" k8s/deployments/frontend-deployment.yaml
+        sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployments/product-deployment.yaml
+        sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployments/order-deployment.yaml
+        sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployments/user-deployment.yaml
+        sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployments/frontend-deployment.yaml
 
     - name: Commit updated manifests
       run: |

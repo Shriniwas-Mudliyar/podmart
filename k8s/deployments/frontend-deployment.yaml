@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend-service
-        image: shridocker99/podmart-frontend-service:latest
+        image: shridocker99/podmart-frontend-service:IMAGE_TAG
         ports:
         - containerPort: 5000
         env:
