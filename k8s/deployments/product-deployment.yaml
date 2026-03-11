@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: product-service
-        image: shridocker99/podmart-product-service:IMAGE_TAG
+        image: shridocker99/podmart-product-service:d4b144e26a6f45e4e1bce9891bd5269d95011869
         ports:
         - containerPort: 5001
         env:
