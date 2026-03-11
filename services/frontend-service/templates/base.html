@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podmart — {% block title %}{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+        nav {
+            background: #1e293b;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            height: 60px;
+            border-bottom: 2px solid #3b82f6;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .nav-brand { font-size: 1.4rem; font-weight: 700; color: #3b82f6; margin-right: 3rem; letter-spacing: 1px; }
+        .nav-brand span { color: #e2e8f0; }
+        .nav-links { display: flex; flex: 1; }
+        nav a { color: #94a3b8; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; margin-right: 0.5rem; font-size: 0.9rem; transition: all 0.2s; }
+        nav a:hover, nav a.active { background: #3b82f6; color: white; }
+        .nav-user { display: none; align-items: center; gap: 0.75rem; background: #0f172a; padding: 0.4rem 1rem; border-radius: 8px; border: 1px solid #334155; }
+        .nav-avatar { width: 30px; height: 30px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: white; }
+        .nav-username { color: #e2e8f0; font-size: 0.875rem; font-weight: 600; }
+        .nav-email { color: #64748b; font-size: 0.72rem; }
+        .nav-logout { background: none; border: 1px solid #334155; color: #94a3b8; cursor: pointer; font-size: 0.78rem; padding: 0.25rem 0.6rem; border-radius: 6px; transition: all 0.2s; margin-left: 0.25rem; }
+        .nav-logout:hover { background: #ef4444; border-color: #ef4444; color: white; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #334155; }
+        .card h2 { font-size: 1.1rem; color: #94a3b8; margin-bottom: 1rem; }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-up { background: #166534; color: #86efac; }
+        .badge-down { background: #991b1b; color: #fca5a5; }
+        .badge-pending { background: #92400e; color: #fcd34d; }
+        .badge-fulfilled { background: #166534; color: #86efac; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.75rem 1rem; color: #64748b; font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid #334155; }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }
+        tr:hover td { background: #0f172a; }
+        .btn { padding: 0.5rem 1.25rem; border-radius: 8px; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-success:hover { background: #16a34a; }
+        input, select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.875rem; width: 100%; }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: end; }
+        label { font-size: 0.8rem; color: #64748b; display: block; margin-bottom: 0.4rem; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem; display: none; }
+        .alert-success { background: #166534; color: #86efac; }
+        .alert-error { background: #991b1b; color: #fca5a5; }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">Pod<span>mart</span></div>
+        <div class="nav-links">
+            <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Dashboard</a>
+            <a href="/products" {% if request.path == '/products' %}class="active"{% endif %}>Products</a>
+            <a href="/orders" {% if request.path == '/orders' %}class="active"{% endif %}>Orders</a>
+            <a href="/users" {% if request.path == '/users' %}class="active"{% endif %}>Users</a>
+        </div>
+        <div class="nav-user" id="nav-user">
+            <div class="nav-avatar" id="nav-avatar"></div>
+            <div>
+                <div class="nav-username" id="nav-username"></div>
+                <div class="nav-email" id="nav-email"></div>
+            </div>
+            <button class="nav-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        const stored = sessionStorage.getItem('podmart_user');
+        if (stored) {
+            const u = JSON.parse(stored);
+            document.getElementById('nav-user').style.display = 'flex';
+            document.getElementById('nav-avatar').textContent = u.username.charAt(0).toUpperCase();
+            document.getElementById('nav-username').textContent = u.username;
+            document.getElementById('nav-email').textContent = u.email;
+        }
+        function logout() {
+            sessionStorage.removeItem('podmart_user');
+            window.location.href = '/users';
+        }
+    </script>
+</body>
+</html>

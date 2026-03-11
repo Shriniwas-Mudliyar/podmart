@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <div>
+        <h1 style="font-size:1.75rem; font-weight:700;">Dashboard</h1>
+        <p style="color:#64748b; font-size:0.875rem; margin-top:0.25rem;">Live overview of all Podmart services</p>
+    </div>
+    <div id="welcome-msg" style="display:none; text-align:right;">
+        <div style="color:#64748b; font-size:0.8rem;">Welcome back</div>
+        <div id="welcome-name" style="color:#3b82f6; font-weight:700; font-size:1.1rem;"></div>
+    </div>
+</div>
+
+<!-- Service Health -->
+<div class="card">
+    <h2>🔧 Service Health</h2>
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1rem;">
+        {% for name, status in services.items() %}
+        <div style="background:#0f172a; border-radius:10px; padding:1.25rem; border:1px solid {% if status == 'up' %}#166534{% else %}#991b1b{% endif %};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                <span style="font-weight:700; font-size:0.95rem;">{{ name }}-service</span>
+                <span class="badge badge-{{ status }}">● {{ 'ONLINE' if status == 'up' else 'OFFLINE' }}</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                <div style="background:#1e293b; padding:0.5rem; border-radius:6px;">
+                    <div style="color:#64748b; font-size:0.7rem;">PORT</div>
+                    <div style="font-size:0.9rem; font-weight:600;">{{ '5001' if name == 'product' else '5002' if name == 'order' else '5003' }}</div>
+                </div>
+                <div style="background:#1e293b; padding:0.5rem; border-radius:6px;">
+                    <div style="color:#64748b; font-size:0.7rem;">HEALTH</div>
+                    <div style="font-size:0.9rem; font-weight:600; color:{% if status == 'up' %}#86efac{% else %}#fca5a5{% endif %};">{{ 'Healthy' if status == 'up' else 'Down' }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Stats -->
+<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1.5rem; margin-bottom:1.5rem;">
+    <div class="card" style="margin-bottom:0; border-left:4px solid #3b82f6;">
+        <div style="display:flex; justify-content:space-between;">
+            <div>
+                <div style="color:#64748b; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Total Products</div>
+                <div style="font-size:2.5rem; font-weight:700; color:#3b82f6; line-height:1.2;">{{ counts.products }}</div>
+                <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">items in catalogue</div>
+            </div>
+            <div style="font-size:2.5rem; opacity:0.4;">📦</div>
+        </div>
+        <a href="/products" style="display:inline-block; margin-top:1rem; color:#3b82f6; font-size:0.8rem; text-decoration:none; border:1px solid #3b82f6; padding:0.25rem 0.75rem; border-radius:6px;">Manage →</a>
+    </div>
+
+    <div class="card" style="margin-bottom:0; border-left:4px solid #22c55e;">
+        <div style="display:flex; justify-content:space-between;">
+            <div>
+                <div style="color:#64748b; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Total Orders</div>
+                <div style="font-size:2.5rem; font-weight:700; color:#22c55e; line-height:1.2;">{{ counts.orders }}</div>
+                <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">orders placed</div>
+            </div>
+            <div style="font-size:2.5rem; opacity:0.4;">🛒</div>
+        </div>
+        <a href="/orders" style="display:inline-block; margin-top:1rem; color:#22c55e; font-size:0.8rem; text-decoration:none; border:1px solid #22c55e; padding:0.25rem 0.75rem; border-radius:6px;">View all →</a>
+    </div>
+
+    <div class="card" style="margin-bottom:0; border-left:4px solid #a855f7;">
+        <div style="display:flex; justify-content:space-between;">
+            <div>
+                <div style="color:#64748b; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Registered Users</div>
+                <div style="font-size:2.5rem; font-weight:700; color:#a855f7; line-height:1.2;">{{ counts.users }}</div>
+                <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">accounts created</div>
+            </div>
+            <div style="font-size:2.5rem; opacity:0.4;">👤</div>
+        </div>
+        <a href="/users" style="display:inline-block; margin-top:1rem; color:#a855f7; font-size:0.8rem; text-decoration:none; border:1px solid #a855f7; padding:0.25rem 0.75rem; border-radius:6px;">Manage →</a>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h2 style="margin-bottom:0;">🕐 Recent Orders</h2>
+        <a href="/orders" style="color:#3b82f6; font-size:0.85rem; text-decoration:none;">View all →</a>
+    </div>
+    {% if recent_orders %}
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th><th>Product</th><th>Quantity</th><th>Total</th><th>Status</th><th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for order in recent_orders %}
+        <tr>
+            <td style="color:#64748b; font-family:monospace;">#{{ order.id }}</td>
+            <td style="font-weight:600;">{{ order.product_name }}</td>
+            <td>× {{ order.quantity }}</td>
+            <td style="color:#22c55e; font-weight:600;">₹{{ "%.2f"|format(order.total_price) }}</td>
+            <td><span class="badge badge-{{ order.status }}">{{ order.status }}</span></td>
+            <td style="color:#64748b;">{{ order.created_at[:10] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center; padding:3rem 1rem; color:#64748b;">
+        <div style="font-size:3rem; margin-bottom:1rem;">🏪</div>
+        <div style="font-weight:600; margin-bottom:0.5rem; color:#94a3b8;">Your shop is empty</div>
+        <div style="font-size:0.875rem; line-height:1.8;">
+            Step 1 → <a href="/products" style="color:#3b82f6;">Add some products</a><br>
+            Step 2 → <a href="/users" style="color:#a855f7;">Register a customer</a><br>
+            Step 3 → <a href="/orders" style="color:#22c55e;">Place an order</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+const stored = sessionStorage.getItem('podmart_user');
+if (stored) {
+    const u = JSON.parse(stored);
+    document.getElementById('welcome-msg').style.display = 'block';
+    document.getElementById('welcome-name').textContent = u.username;
+}
+</script>
+{% endblock %}

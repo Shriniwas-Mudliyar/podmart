@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+
+  # ── Databases ──────────────────────────────────────
+  product-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: productdb
+      POSTGRES_USER: podmart
+      POSTGRES_PASSWORD: podmart123
+    volumes:
+      - product-db-data:/var/lib/postgresql/data
+    networks:
+      - podmart-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U podmart -d productdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: podmart
+      POSTGRES_PASSWORD: podmart123
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    networks:
+      - podmart-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U podmart -d orderdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: podmart
+      POSTGRES_PASSWORD: podmart123
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - podmart-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U podmart -d userdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Services ───────────────────────────────────────
+  product-service:
+    build: ./services/product-service
+    ports:
+      - "5001:5001"
+    environment:
+      DATABASE_URL: postgresql://podmart:podmart123@product-db:5432/productdb
+    depends_on:
+      product-db:
+        condition: service_healthy
+    networks:
+      - podmart-network
+    restart: on-failure
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "5002:5002"
+    environment:
+      DATABASE_URL: postgresql://podmart:podmart123@order-db:5432/orderdb
+      PRODUCT_SERVICE_URL: http://product-service:5001
+    depends_on:
+      order-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+    networks:
+      - podmart-network
+    restart: on-failure
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "5003:5003"
+    environment:
+      DATABASE_URL: postgresql://podmart:podmart123@user-db:5432/userdb
+    depends_on:
+      user-db:
+        condition: service_healthy
+    networks:
+      - podmart-network
+    restart: on-failure
+
+  frontend-service:
+    build: ./services/frontend-service
+    ports:
+      - "5000:5000"
+    environment:
+      PRODUCT_SERVICE_URL: http://product-service:5001
+      ORDER_SERVICE_URL: http://order-service:5002
+      USER_SERVICE_URL: http://user-service:5003
+    depends_on:
+      - product-service
+      - order-service
+      - user-service
+    networks:
+      - podmart-network
+    restart: on-failure
+
+# ── Volumes & Networks ─────────────────────────────
+volumes:
+  product-db-data:
+  order-db-data:
+  user-db-data:
+
+networks:
+  podmart-network:
+    driver: bridge

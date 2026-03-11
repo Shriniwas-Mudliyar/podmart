@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Orders{% endblock %}
+{% block content %}
+
+<h1 style="font-size:1.75rem; font-weight:700; margin-bottom:1.5rem;">Orders</h1>
+
+<div class="card">
+    <h2>Place New Order</h2>
+    <div id="alert-box" class="alert"></div>
+    <div class="form-grid">
+        <div><label>Product</label>
+            <select id="product_id">
+                {% for p in products %}
+                <option value="{{ p.id }}" data-price="{{ p.price }}">{{ p.name }} — ₹{{ "%.2f"|format(p.price) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div><label>Quantity</label><input type="number" id="quantity" value="1" min="1"></div>
+        <div style="display:flex; align-items:flex-end;">
+            <button class="btn btn-success" onclick="placeOrder()" style="width:100%;">Place Order</button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>All Orders ({{ orders|length }})</h2>
+    <table>
+        <thead><tr><th>ID</th><th>Product</th><th>Qty</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+        {% for o in orders %}
+        <tr>
+            <td>#{{ o.id }}</td>
+            <td style="font-weight:600;">{{ o.product_name }}</td>
+            <td>{{ o.quantity }}</td>
+            <td style="color:#3b82f6;">₹{{ "%.2f"|format(o.total_price) }}</td>
+            <td><span class="badge badge-{{ o.status }}">{{ o.status }}</span></td>
+            <td style="color:#64748b;">{{ o.created_at[:10] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function showAlert(msg, type) {
+    const box = document.getElementById('alert-box');
+    box.className = `alert alert-${type}`;
+    box.textContent = msg;
+    box.style.display = 'block';
+    setTimeout(() => box.style.display = 'none', 3000);
+}
+
+async function placeOrder() {
+    const body = {
+        product_id: parseInt(document.getElementById('product_id').value),
+        quantity: parseInt(document.getElementById('quantity').value)
+    };
+    const res = await fetch('/api/orders', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    if (res.ok) { showAlert('Order placed!', 'success'); setTimeout(() => location.reload(), 1000); }
+    else showAlert('Failed to place order', 'error');
+}
+</script>
+{% endblock %}

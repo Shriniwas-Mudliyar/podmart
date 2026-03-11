@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: podmart-config
+  namespace: podmart
+data:
+  PRODUCT_SERVICE_URL: "http://product-service:5001"
+  ORDER_SERVICE_URL: "http://order-service:5002"
+  USER_SERVICE_URL: "http://user-service:5003"
+  FLASK_ENV: "production"

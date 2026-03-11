@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block content %}
+
+<h1 style="font-size:1.75rem; font-weight:700; margin-bottom:1.5rem;">Products</h1>
+
+<div class="card">
+    <h2>Add New Product</h2>
+    <div id="alert-box" class="alert"></div>
+    <div class="form-grid">
+        <div><label>Product Name</label><input type="text" id="name" placeholder="e.g. Laptop"></div>
+        <div><label>Price (₹)</label><input type="number" id="price" placeholder="e.g. 999"></div>
+        <div><label>Category</label>
+            <select id="category">
+                <option value="Electronics">Electronics</option>
+                <option value="Clothing">Clothing</option>
+                <option value="Food">Food</option>
+                <option value="Books">Books</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div><label>Stock</label><input type="number" id="stock" placeholder="e.g. 100"></div>
+        <div style="display:flex; align-items:flex-end;">
+            <button class="btn btn-primary" onclick="addProduct()" style="width:100%;">Add Product</button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>All Products ({{ products|length }})</h2>
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead>
+        <tbody id="products-table">
+        {% for p in products %}
+        <tr id="row-{{ p.id }}">
+            <td>#{{ p.id }}</td>
+            <td style="font-weight:600;">{{ p.name }}</td>
+            <td><span class="badge" style="background:#1e3a5f; color:#93c5fd;">{{ p.category }}</span></td>
+            <td style="color:#3b82f6;">₹{{ "%.2f"|format(p.price) }}</td>
+            <td>{{ p.stock }}</td>
+            <td><button class="btn btn-danger" onclick="deleteProduct({{ p.id }})">Delete</button></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function showAlert(msg, type) {
+    const box = document.getElementById('alert-box');
+    box.className = `alert alert-${type}`;
+    box.textContent = msg;
+    box.style.display = 'block';
+    setTimeout(() => box.style.display = 'none', 3000);
+}
+
+async function addProduct() {
+    const body = {
+        name: document.getElementById('name').value,
+        price: parseFloat(document.getElementById('price').value),
+        category: document.getElementById('category').value,
+        stock: parseInt(document.getElementById('stock').value) || 0
+    };
+    if (!body.name || !body.price) return showAlert('Name and price are required', 'error');
+    const res = await fetch('/api/products', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    if (res.ok) { showAlert('Product added!', 'success'); setTimeout(() => location.reload(), 1000); }
+    else showAlert('Failed to add product', 'error');
+}
+
+async function deleteProduct(id) {
+    if (!confirm('Delete this product?')) return;
+    const res = await fetch(`/api/products/${id}`, {method:'DELETE'});
+    if (res.ok) document.getElementById(`row-${id}`).remove();
+    else showAlert('Failed to delete', 'error');
+}
+</script>
+{% endblock %}
