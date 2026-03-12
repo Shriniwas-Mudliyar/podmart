@@ -19,16 +19,14 @@
 
 ## 📌 Overview
 
-Podmart is a cloud-native microservices e-commerce platform built to demonstrate a
-complete end-to-end DevOps workflow. The application simulates a real online store
-with independent services for products, orders, and users — each with its own database,
-containerized with Docker, orchestrated by Kubernetes, and monitored with Prometheus and Grafana.
+Podmart is a cloud-native microservices e-commerce platform built to demonstrate a complete end-to-end DevOps workflow. The application simulates a real online store with independent services for products, orders, and users — each with its own database, containerized with Docker, orchestrated by Kubernetes, and monitored with Prometheus and Grafana.
 
 > The app is intentionally simple. The infrastructure is the point.
 
 ---
 
 ## 🏗️ Architecture
+
 ```
                          ┌─────────────────────────────────────────┐
                          │           Kubernetes (Minikube)          │
@@ -53,7 +51,7 @@ containerized with Docker, orchestrated by Kubernetes, and monitored with Promet
                     ┌───────────────────────────┐                  │
                     │    Monitoring Namespace    │                  │
                     │  Prometheus │   Grafana    │                  │
-                    │  Alertmanager             │                  │
+                    │       Alertmanager         │                  │
                     └───────────────────────────┘                  │
                          └─────────────────────────────────────────┘
 ```
@@ -72,7 +70,7 @@ containerized with Docker, orchestrated by Kubernetes, and monitored with Promet
 | **CI/CD** | GitHub Actions |
 | **Image Registry** | Docker Hub |
 | **Monitoring** | Prometheus, Grafana, Alertmanager |
-| **Infrastructure** | Terraform (AWS S3, IAM) |
+| **Infrastructure as Code** | Terraform (AWS S3, IAM) |
 | **Package Manager** | Helm |
 
 ---
@@ -91,6 +89,7 @@ Each service exposes a `/health` endpoint and a `/metrics` endpoint scraped by P
 ---
 
 ## 🔄 CI/CD Pipeline
+
 ```
 Developer pushes code
         │
@@ -115,9 +114,7 @@ GitHub Actions triggers
 
 ## 🔁 GitOps with ArgoCD
 
-ArgoCD watches this repository every 3 minutes. When the CD pipeline
-updates the image tags in the Kubernetes manifests, ArgoCD detects the
-change and automatically syncs the cluster to match the desired state in Git.
+ArgoCD watches this repository every 3 minutes. When the CD pipeline updates the image tags in the Kubernetes manifests, ArgoCD detects the change and automatically syncs the cluster to match the desired state in Git.
 
 - **Self-healing** — if someone manually changes the cluster, ArgoCD corrects it
 - **Drift detection** — cluster always matches what's in Git
@@ -147,26 +144,31 @@ Each Flask service exposes custom business metrics:
 ---
 
 ## 📁 Project Structure
+
 ```
 podmart/
 ├── services/
-│   ├── product-service/     # Flask app + Dockerfile
-│   ├── order-service/       # Flask app + Dockerfile
-│   ├── user-service/        # Flask app + Dockerfile
-│   └── frontend-service/    # Flask app + HTML templates
+│   ├── product-service/        # Flask app + Dockerfile
+│   ├── order-service/          # Flask app + Dockerfile
+│   ├── user-service/           # Flask app + Dockerfile
+│   └── frontend-service/       # Flask app + HTML templates
 ├── k8s/
-│   ├── namespaces/          # podmart namespace
-│   ├── configmaps/          # app config + secrets
-│   ├── deployments/         # service + db deployments
-│   ├── services/            # ClusterIP + NodePort services
-│   ├── ingress/             # ingress rules
-│   └── monitoring/          # ServiceMonitor for Prometheus
-├── monitoring/
-│   ├── prometheus/          # alert rules
-│   └── grafana/             # dashboard JSON
-├── terraform/               # AWS S3 + IAM infrastructure
-├── .github/workflows/       # CI + CD pipelines
-└── docker-compose.yml       # local development
+│   ├── namespaces/             # podmart namespace
+│   ├── configmaps/             # app config + secrets example
+│   ├── deployments/            # service + db deployments
+│   ├── services/               # ClusterIP + NodePort services
+│   ├── ingress/                # ingress rules
+│   ├── argocd/                 # ArgoCD Application manifest
+│   └── monitoring/             # ServiceMonitor for Prometheus
+├── terraform/                  # AWS S3 + IAM infrastructure
+│   ├── main.tf                 # S3 bucket + IAM user + policy
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── versions.tf
+├── .github/workflows/
+│   ├── ci.yml                  # runs tests + linting on PRs
+│   └── cd.yml                  # builds, pushes, updates manifests
+└── docker-compose.yml          # local development
 ```
 
 ---
@@ -176,6 +178,7 @@ podmart/
 ### Prerequisites
 - Docker
 - Docker Compose
+
 ```bash
 git clone https://github.com/Shriniwas-Mudliyar/podmart.git
 cd podmart
@@ -192,42 +195,155 @@ Open `http://localhost:5000`
 - Minikube
 - kubectl
 - Helm
+
+### 1 — Start Minikube
+
 ```bash
-# Start Minikube
-minikube start --driver=docker --cpus=2 --memory=3500
+minikube start --driver=docker --cpus=2 --memory=3000
+```
 
-# Deploy application
-kubectl apply -f k8s/namespaces/
-kubectl apply -f k8s/configmaps/
-kubectl apply -f k8s/deployments/
-kubectl apply -f k8s/services/
+### 2 — Create Namespaces
 
-# Access the app
+```bash
+kubectl create namespace podmart
+kubectl create namespace monitoring
+```
+
+### 3 — Configure Secrets
+
+```bash
+# Copy the example secrets file and fill in your values
+cp k8s/configmaps/podmart-secrets.example.yaml k8s/configmaps/podmart-secrets.yaml
+# Edit the file with your actual credentials
+```
+
+### 4 — Deploy Application
+
+```bash
+# Apply all manifests recursively
+kubectl apply -R -f k8s/ -n podmart
+```
+
+### 5 — Access the App
+
+```bash
 minikube service frontend-service -n podmart --url
 ```
 
-### Install Monitoring Stack
+---
+
+## 📈 Install Monitoring Stack
+
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
 helm install monitoring prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --create-namespace \
-  --set grafana.adminPassword=podmart123
+  --namespace monitoring
 
-# Access Grafana
+# Get Grafana admin password
+kubectl get secret -n monitoring monitoring-grafana \
+  -o jsonpath="{.data.admin-password}" | base64 -d && echo
+
+# Apply ServiceMonitors (after Helm install completes)
+kubectl apply -f k8s/monitoring/servicemonitor.yaml
+
+# Access Grafana at http://localhost:3000
 kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
-# Open http://localhost:3000 (admin/podmart123)
 ```
 
-### Install ArgoCD
+### Access Prometheus
+
+```bash
+# Access Prometheus at http://localhost:9090
+kubectl port-forward svc/monitoring-kube-prometheus-prometheus -n monitoring 9090:9090
+```
+
+---
+
+## 🔀 Install ArgoCD
+
 ```bash
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# Access ArgoCD UI
+# Wait for pods to be ready
+kubectl wait --for=condition=Ready pods --all -n argocd --timeout=120s
+
+# Apply the ArgoCD Application manifest (points ArgoCD at this repo)
+kubectl apply -f k8s/argocd/podmart-app.yaml
+
+# Get admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d && echo
+
+# Access ArgoCD UI at https://localhost:8080 (username: admin)
 kubectl port-forward svc/argocd-server -n argocd 8080:443
-# Open https://localhost:8080 (admin/<generated-password>)
 ```
+
+---
+
+## 🌍 Terraform — AWS Infrastructure
+
+Provisions the S3 remote state bucket and IAM deploy user for CI/CD.
+
+### Prerequisites
+- Terraform >= 1.0
+- AWS CLI configured (`aws configure`)
+
+```bash
+cd terraform
+
+# Initialise providers
+terraform init
+
+# Preview changes
+terraform plan
+
+# Apply infrastructure
+terraform apply
+```
+
+### Resources Created
+
+| Resource | Name | Purpose |
+|---|---|---|
+| `aws_s3_bucket` | `podmart-tf-state-061785` | Remote state storage |
+| `aws_s3_bucket_versioning` | enabled | State file history |
+| `aws_s3_bucket_server_side_encryption_configuration` | AES256 | Encryption at rest |
+| `aws_s3_bucket_public_access_block` | all blocked | Security |
+| `aws_iam_user` | `podmart-deploy` | CI/CD deploy user |
+| `aws_iam_policy` | `podmart-deploy-policy` | Scoped S3 + ECR + EKS permissions |
+| `aws_iam_access_key` | — | Programmatic credentials |
+
+### After Apply — Add to GitHub Secrets
+
+```bash
+# Get the secret access key
+terraform output -raw iam_secret_access_key
+```
+
+Add these to **GitHub → Settings → Secrets → Actions**:
+
+| Secret | Value |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | from `terraform output iam_access_key_id` |
+| `AWS_SECRET_ACCESS_KEY` | from `terraform output -raw iam_secret_access_key` |
+| `DOCKER_USERNAME` | your Docker Hub username |
+| `DOCKER_PASSWORD` | your Docker Hub password |
+
+---
+
+## 🔑 Key DevOps Concepts Demonstrated
+
+- **Microservices** — database-per-service pattern, fault isolation
+- **Containerization** — Docker images tagged with Git SHA for full traceability
+- **Kubernetes** — Deployments, StatefulSets, Services, ConfigMaps, Secrets, resource limits, liveness/readiness probes
+- **GitOps** — ArgoCD watches Git as single source of truth with auto self-heal and prune
+- **CI/CD** — automated build, push, and manifest update on every commit to main
+- **Observability** — custom Prometheus metrics, Grafana dashboards, Alertmanager, ServiceMonitors
+- **Infrastructure as Code** — Terraform for AWS S3 + IAM with remote state
+- **Security** — secrets excluded from Git, S3 bucket encrypted + public access blocked, IAM policy least privilege
 
 ---
 
@@ -244,18 +360,6 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ### GitHub Actions — CI/CD Pipeline
 ![CI/CD](docs/screenshots/cicd.png)
-
----
-
-## 🔑 Key DevOps Concepts Demonstrated
-
-- **Microservices** — database-per-service pattern, fault isolation
-- **Containerization** — multi-stage Docker builds, image tagging with Git SHA
-- **Kubernetes** — Deployments, StatefulSets, Services, ConfigMaps, Secrets, HPA
-- **GitOps** — ArgoCD watches Git as single source of truth
-- **CI/CD** — automated testing, building, pushing and deploying on every commit
-- **Observability** — custom Prometheus metrics, Grafana dashboards, Alertmanager
-- **Infrastructure as Code** — Terraform for AWS resources
 
 ---
 
