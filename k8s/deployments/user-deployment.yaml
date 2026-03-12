@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: shridocker99/podmart-user-service:d4b144e26a6f45e4e1bce9891bd5269d95011869
+        image: shridocker99/podmart-user-service:f9ab8c7f7ca370c01075c243d3e4b77a6e59ae5f
         ports:
         - containerPort: 5003
         env:
